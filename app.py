@@ -94,7 +94,7 @@ except Exception as e:
     st.stop()
 
 # --- タイトル ---
-st.markdown("### 💑 Couple Ledger")
+st.markdown("### 共同通帳")
 
 # --- タブの作成（ここがポイント！） ---
 tab1, tab2 = st.tabs(["📝 入力", "📊 通帳"])
