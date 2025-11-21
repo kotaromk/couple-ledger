@@ -17,23 +17,25 @@ SPREADSHEET_NAME = "couple_ledger_db"
 def get_spreadsheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
-    # --- 【ここが重要】クラウドかPCかを自動判断 ---
-    # パターンA：クラウド上の「金庫（Secrets）」に鍵がある場合
-    if "gcp_json" in st.secrets:
-        key_dict = json.loads(st.secrets["gcp_json"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
-    
-    # パターンB：自分のPCに「secret.json」ファイルがある場合
-    else:
-        json_files = glob.glob("*.json")
-        if not json_files:
-            st.error("⚠️ 鍵ファイルが見つかりません！")
-            st.stop()
-        creds = ServiceAccountCredentials.from_json_keyfile_name(json_files[0], scope)
+    # 1. まずクラウドの「金庫」を探してみる
+    try:
+        if "gcp_json" in st.secrets:
+            key_dict = json.loads(st.secrets["gcp_json"])
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
+            client = gspread.authorize(creds)
+            return client.open(SPREADSHEET_NAME).sheet1
+    except FileNotFoundError:
+        pass # PCには金庫がないので無視して次へ進む
 
+    # 2. 金庫がなければ、PC内の「secret.json」を探す
+    json_files = glob.glob("*.json")
+    if not json_files:
+        st.error("⚠️ 鍵ファイルが見つかりません！")
+        st.stop()
+    
+    creds = ServiceAccountCredentials.from_json_keyfile_name(json_files[0], scope)
     client = gspread.authorize(creds)
     return client.open(SPREADSHEET_NAME).sheet1
-
 # --- データの読み込み ---
 def load_data():
     sheet = get_spreadsheet()
